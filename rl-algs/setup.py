@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-setup(name='rl-algs',
+setup(name='rl_algs',
       py_modules=['rl_algs'],
       install_requires=[
           'scipy',
