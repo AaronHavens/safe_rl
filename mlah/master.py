@@ -38,12 +38,12 @@ def start(args, workerseed, rank, comm):
     ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[None, ob_space.shape[0]])
     adv_ob = U.get_placeholder(name="adv_ob",dtype=tf.float32, shape=[None,master_ob.shape[0]])
     # ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[None, 104])
-    master_policy = Policy(name="master", ob=adv_ob, ac_space=0, hid_size=16, num_hid_layers=2, num_subpolicies=2)
-    old_master_policy = Policy(name="old_master", ob=adv_ob, ac_space=0, hid_size=16, num_hid_layers=2, num_subpolicies=2)
+    master_policy = Policy(name="master", ob=adv_ob, ac_space=0, hid_size=8, num_hid_layers=2, num_subpolicies=2)
+    old_master_policy = Policy(name="old_master", ob=adv_ob, ac_space=0, hid_size=8, num_hid_layers=2, num_subpolicies=2)
     # features = Features(name="features", ob=ob)
     sub_policies = [SubPolicy(name="sub_policy_%i" % x, ob=ob, ac_space=ac_space, hid_size=32, num_hid_layers=2) for x in range(num_subs)]
     old_sub_policies = [SubPolicy(name="old_sub_policy_%i" % x, ob=ob, ac_space=ac_space, hid_size=32, num_hid_layers=2) for x in range(num_subs)]
-    attack_grad = U.function([ob],tf.nn.l2_normalize(tf.gradients(sub_policies[0].vpred, ob)[0]))
+    #attack_grad = U.function([ob],tf.nn.l2_normalize(tf.gradients(sub_policies[0].vpred, ob)[0]))
     learner = Learner(env,master_policy,old_master_policy,sub_policies, old_sub_policies, comm, clip_param=0.2, entcoeff=0, optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64)
     #adv_generator = adv_gen(ob_space,attack_grad,delay=args.warmup_time*num_rollouts)
     #adv_generator_eval = adv_gen(ob_space,attack_grad,delay=args.warmup_time*num_rollouts,dummy=True)
@@ -84,7 +84,7 @@ def start(args, workerseed, rank, comm):
     while mini_ep < args.warmup_time + train_time:
 
         mini_ep += 1
-        if(mini_ep==args.warmup_time):
+        if(mini_ep==args.warmup_time or args.warmup_time==0):
             print("start training with")
             args.pretrain = -1
             sub_train = [False,True]

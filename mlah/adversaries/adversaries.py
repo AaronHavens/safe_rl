@@ -26,7 +26,7 @@ def unbounded_bias_perturb(ob,space,power,augmented):
     return ob
 
 def symetric_mirror_perturb(ob,space,power,augmented):
-    for i in range(2,len(ob)-1):
+    for i in range(len(ob)):
         ob[i] = max(min(ob[i]*-1,space.high[i]),space.low[i])
     return ob
 

@@ -85,16 +85,16 @@ class Learner:
         return total_loss
 
     def policy_loss(self, pi, other_pi, oldpi, ob, ac, atarg, ret, clip_param):
-        policy_seperation_loss = 0.001*U.mean(tf.reciprocal(pi.pd.kl(other_pi.pd)))
+        policy_seperation_loss = 0.1*U.mean(tf.reciprocal(pi.pd.kl(other_pi.pd)))
         ratio = tf.exp(pi.pd.logp(ac) - tf.clip_by_value(oldpi.pd.logp(ac), -20, 20)) # advantage * pnew / pold
         surr1 = ratio * atarg
         surr2 = U.clip(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg
         pol_surr = - U.mean(tf.minimum(surr1, surr2))
-        vf_loss = tf.square(pi.vpred - ret)
+        vfloss1 = tf.square(pi.vpred - ret)
         # We dont want to clip vf losses because value is critical to learning of master.
-        #vpredclipped = oldpi.vpred + tf.clip_by_value(pi.vpred - oldpi.vpred, -clip_param, clip_param)
-        #vfloss = tf.square(vpredclipped - ret)
-        #vf_loss = .5 * U.mean(tf.maximum(vfloss1, vfloss2))
+        vpredclipped = oldpi.vpred + tf.clip_by_value(pi.vpred - oldpi.vpred, -clip_param, clip_param)
+        vfloss2 = tf.square(vpredclipped - ret)
+        vf_loss = .5 *tf.maximum(vfloss1, vfloss2)
         total_loss = pol_surr + vf_loss# + policy_seperation_loss
         return total_loss
 

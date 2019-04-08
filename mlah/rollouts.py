@@ -6,7 +6,7 @@ import copy
 from collections import deque
 import matplotlib.pyplot as plt
 
-def adv_scope(rew_,new_,vpred1_,vpred2_,last_policy):#compute advantage with rolling inputs
+def adv_scope(rew_,new_,vpred1_,vpred2_,last_a):#compute advantage with rolling inputs
     #[(ob,a,r,new),...,(ob,a,r,new)] Computes the advantage for each policy given that they would have acted
     T = len(rew_)
     rew = np.array(rew_)
@@ -61,7 +61,7 @@ def traj_segment_generator(adv_generator, master_pol,sub_policies, env, horizon,
     macro_obs = np.array([np.array([0,0],dtype=np.float32) for _ in range(horizon)])
     rews = np.zeros(horizon, 'float32')
     vpreds = np.zeros(horizon, 'float32')
-    q_len = 15
+    q_len = 2
     vpreds1 = deque(maxlen=q_len)
     vpreds2 = deque(maxlen=q_len)
     rews_q = deque(maxlen=q_len)
@@ -112,7 +112,7 @@ def traj_segment_generator(adv_generator, master_pol,sub_policies, env, horizon,
 
         if len(rews_q) >= 1 and args.pretrain < 0:
             macro_ob = adv_scope(rews_q,news_q,vpreds1,vpreds2,last_policy)
-            if t%25==0:
+            if t%1==0:
                 macro_ac, macro_pred = master_pol.act(True,macro_ob)
 
 
@@ -125,6 +125,7 @@ def traj_segment_generator(adv_generator, master_pol,sub_policies, env, horizon,
             macro_ob = np.array([0],dtype=np.float32)
 
         last_policy = cur_pol
+        #cur_pol = macro_ac
         if macro_ac == 1:
             if cur_pol == 0: cur_pol = 1
             else: cur_pol = 0
@@ -177,7 +178,7 @@ def traj_segment_generator(adv_generator, master_pol,sub_policies, env, horizon,
         '''
         #if x%20 == 0:
         #env.render()
-        if cur_ep_len > 20:
+        if cur_ep_len > 20000:
             new = True
         cur_ep_ret += rew
         cur_ep_len += 1
@@ -231,19 +232,22 @@ def prepare_allrolls(allrolls, gamma, lam, num_subpolicies):
     test_seg["adv"] = gaelam = np.empty(T, 'float32')
     rew = test_seg["rew"]
     lastgaelam = 0
+    indices = []
     for t in reversed(range(T)):
         nonterminal = 1-new[t+1]
         if t < T-1:
-            if test_seg["pol_choice"][t] != test_seg["pol_choice"][t+1]: lastgaelam = 0  #Try not to roll in expectation of other MDPs
-        delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
-        gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
-    test_seg["tdlamret"] = test_seg["adv"] + test_seg["vpred"]
+            if test_seg["pol_choice"][t] == test_seg["pol_choice"][t+1]:  #Try not to roll in expectation of other MDPs
+                delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
+                gaelam[t] = lastgaelam = delta #+ gamma * lam * nonterminal * lastgaelam
+                indices.append(t)
+            else: lastgaelam = 0
+    test_seg["tdlamret"] = test_seg["adv"][indices] + test_seg["vpred"][indices]
 
-    split_test = split_segments(test_seg, num_subpolicies)
+    split_test = split_segments(test_seg, num_subpolicies, indices)
     print(len(split_test[0]['ob']),len(split_test[1]['ob']))
     return split_test
 
-def split_segments(seg, num_subpolicies):
+def split_segments(seg, num_subpolicies, indices):
     subpol_counts = []
     for i in range(num_subpolicies):
         subpol_counts.append(0)
@@ -259,11 +263,13 @@ def split_segments(seg, num_subpolicies):
     subpol_counts = []
     for i in range(num_subpolicies):
         subpol_counts.append(0)
-    for i in range(len(seg["ob"])):
+    j = 0
+    for i in indices:
         mac = seg["pol_choice"][i]
         subpols[mac]["ob"][subpol_counts[mac]] = seg["ob"][i]
         subpols[mac]["adv"][subpol_counts[mac]] = seg["adv"][i]
-        subpols[mac]["tdlamret"][subpol_counts[mac]] = seg["tdlamret"][i]
+        subpols[mac]["tdlamret"][subpol_counts[mac]] = seg["tdlamret"][j]
         subpols[mac]["ac"][subpol_counts[mac]] = seg["ac"][i]
         subpol_counts[mac] += 1
+        j += 1
     return subpols
