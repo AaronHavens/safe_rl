@@ -8,12 +8,13 @@ RIGHT = 2
 DOWN = 3
 UP = 4
 
+PIT_REWARD = -10.0
 GOAL_REWARD = 100.0
 STEP_REWARD = -1.0
 
 class GridWorld(gym.Env):
 
-    def __init__(self,n_dims=11,goal=[5,5],seed=None):
+    def __init__(self,n_dims=11,goal=[10,0],seed=None,pose=None):
         if seed is not None:
             np.random.seed(seed)
         self.dim = n_dims
@@ -22,6 +23,18 @@ class GridWorld(gym.Env):
         self.low = np.array([0, 0])
         self.high = np.array([self.dim-1, self.dim-1])
         self.observation_space =  spaces.Box(self.low, self.high)
+        self.start = [0,0]
+        self.pit_map = [[0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0,0],
+                        [1,0,1,1,0,0,0,0,0,0,0],
+                        [1,0,1,1,0,0,0,0,0,0,0],
+                        [1,0,1,1,0,0,0,0,0,0,0],
+                        [1,0,1,1,0,0,0,0,0,0,0],
+                        [1,0,1,1,0,0,0,0,0,0,0],
+                        [1,0,1,1,0,0,0,0,0,0,0],
+                        [1,0,1,1,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0,0],
+                        [2,0,0,0,0,0,0,0,0,0,0]]
         self.state = self.reset()
 
     def step(self,action):
@@ -48,9 +61,11 @@ class GridWorld(gym.Env):
         state_ = np.array([row,col],dtype=int)
 
 
-        if np.array_equal(state_,self.goal):
+        if self.pit_map[state_[0]][state_[1]] == 2:
             reward = GOAL_REWARD
             self.done = True
+        elif self.pit_map[state_[0]][state_[1]] == 1:
+            reward = PIT_REWARD
         else:
             reward = STEP_REWARD + 10*(-self.l2_dist(state_)+self.l2_dist(self.state))
         self.state = state_
@@ -60,7 +75,11 @@ class GridWorld(gym.Env):
         self.goal = np.array(goal, dtype=int)
 
     def reset(self):
-        row,col = self.grid_select()
+        if self.start is None:
+            row,col = self.grid_select()
+        else:
+            row = self.start[0]
+            col = self.start[1]
 
         self.state = np.array([row,col],dtype=int)
         self.done = False

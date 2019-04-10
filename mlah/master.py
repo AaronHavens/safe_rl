@@ -47,7 +47,7 @@ def start(args, workerseed, rank, comm):
     learner = Learner(env,master_policy,old_master_policy,sub_policies, old_sub_policies, comm, clip_param=0.2, entcoeff=0, optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64)
     #adv_generator = adv_gen(ob_space,attack_grad,delay=args.warmup_time*num_rollouts)
     #adv_generator_eval = adv_gen(ob_space,attack_grad,delay=args.warmup_time*num_rollouts,dummy=True)
-    adv_generator = adv_gen(1.0, ob_space, perturb_func=grid_reflect, delay=num_rollouts*args.warmup_time,augmented=args.augment)
+    adv_generator = adv_gen(1.0, ob_space, perturb_func=stoch_bias_grid, delay=num_rollouts*args.warmup_time,augmented=args.augment)
     adv_generator_eval = adv_gen(-1.0, ob_space, perturb_func=stoch_perturb)
     override=None
     rollout = rollouts.traj_segment_generator(adv_generator,master_policy, sub_policies, env, num_rollouts, stochastic=True, args=args)

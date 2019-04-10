@@ -142,6 +142,8 @@ def traj_segment_generator(adv_generator, master_pol,sub_policies, env, horizon,
             # print(total)
             # total = [0,0]
             print('latent objectives',counts)
+            if t > 1024*150:
+                time.sleep(3)
             dicti = {"ob" : obs, "rew" : rews, "vpred" : vpreds,
                     "new" : news, "ac" : acs, "ep_rets" : ep_rets,
                     "ep_lens" : ep_lens, "macro_ac" : macro_acs, "pol_choice" : pol_choice,
@@ -163,22 +165,15 @@ def traj_segment_generator(adv_generator, master_pol,sub_policies, env, horizon,
         macro_vpreds[i] = macro_pred
         macro_obs[i] = macro_ob
 
-        '''
-        if t % macrolen == 0:
-            macro_acs[int(i/macrolen)] = cur_subpolicy
-            macro_vpreds[int(i/macrolen)] = macro_vpred
-        '''
 
         ob_, rew, new, info = env.step(ac)
         rews[i] = rew
-        ''' we dont want to render ever for now
-        if t > 2048*30:
+        if t > 1024*150:
             env.render()        # print(info)
-            pass
-        '''
+
         #if x%20 == 0:
         #env.render()
-        if cur_ep_len > 20000:
+        if cur_ep_len > 100:
             new = True
         cur_ep_ret += rew
         cur_ep_len += 1

@@ -53,7 +53,7 @@ def stoch_bias(ob,space,power,augmented):
 
 def stoch_bias_grid(ob,space,power,augmented):
     for i in range(len(ob)):
-        delta = np.random.uniform(0,2)
+        delta = 1#np.random.uniform(0,2)
         ob[i] = max(min(int(ob[i]-delta),space.high[i]),space.low[i])
     return ob
 
